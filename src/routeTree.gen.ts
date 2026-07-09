@@ -9,8 +9,56 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SoapRouteImport } from './routes/soap'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PatientsRouteImport } from './routes/patients'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ConsultationRouteImport } from './routes/consultation'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SoapRoute = SoapRouteImport.update({
+  id: '/soap',
+  path: '/soap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientsRoute = PatientsRouteImport.update({
+  id: '/patients',
+  path: '/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConsultationRoute = ConsultationRouteImport.update({
+  id: '/consultation',
+  path: '/consultation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +67,144 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/consultation': typeof ConsultationRoute
+  '/dashboard': typeof DashboardRoute
+  '/history': typeof HistoryRoute
+  '/login': typeof LoginRoute
+  '/patients': typeof PatientsRoute
+  '/settings': typeof SettingsRoute
+  '/soap': typeof SoapRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/consultation': typeof ConsultationRoute
+  '/dashboard': typeof DashboardRoute
+  '/history': typeof HistoryRoute
+  '/login': typeof LoginRoute
+  '/patients': typeof PatientsRoute
+  '/settings': typeof SettingsRoute
+  '/soap': typeof SoapRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/consultation': typeof ConsultationRoute
+  '/dashboard': typeof DashboardRoute
+  '/history': typeof HistoryRoute
+  '/login': typeof LoginRoute
+  '/patients': typeof PatientsRoute
+  '/settings': typeof SettingsRoute
+  '/soap': typeof SoapRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/consultation'
+    | '/dashboard'
+    | '/history'
+    | '/login'
+    | '/patients'
+    | '/settings'
+    | '/soap'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/analytics'
+    | '/consultation'
+    | '/dashboard'
+    | '/history'
+    | '/login'
+    | '/patients'
+    | '/settings'
+    | '/soap'
+  id:
+    | '__root__'
+    | '/'
+    | '/analytics'
+    | '/consultation'
+    | '/dashboard'
+    | '/history'
+    | '/login'
+    | '/patients'
+    | '/settings'
+    | '/soap'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  ConsultationRoute: typeof ConsultationRoute
+  DashboardRoute: typeof DashboardRoute
+  HistoryRoute: typeof HistoryRoute
+  LoginRoute: typeof LoginRoute
+  PatientsRoute: typeof PatientsRoute
+  SettingsRoute: typeof SettingsRoute
+  SoapRoute: typeof SoapRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/soap': {
+      id: '/soap'
+      path: '/soap'
+      fullPath: '/soap'
+      preLoaderRoute: typeof SoapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patients': {
+      id: '/patients'
+      path: '/patients'
+      fullPath: '/patients'
+      preLoaderRoute: typeof PatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/consultation': {
+      id: '/consultation'
+      path: '/consultation'
+      fullPath: '/consultation'
+      preLoaderRoute: typeof ConsultationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +217,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  ConsultationRoute: ConsultationRoute,
+  DashboardRoute: DashboardRoute,
+  HistoryRoute: HistoryRoute,
+  LoginRoute: LoginRoute,
+  PatientsRoute: PatientsRoute,
+  SettingsRoute: SettingsRoute,
+  SoapRoute: SoapRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
