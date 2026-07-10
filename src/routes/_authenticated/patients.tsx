@@ -1,36 +1,118 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Filter, Eye, Download, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Search, Filter, Eye, Trash2, Plus, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/mediscribe/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+} from "@/components/ui/dialog";
+import { listPatients, createPatient, deletePatient } from "@/lib/patients.functions";
 
 export const Route = createFileRoute("/_authenticated/patients")({
   head: () => ({ meta: [{ title: "Patient Records — MediScribe" }, { name: "robots", content: "noindex" }] }),
   component: Patients,
 });
 
-const rows = [
-  ["Ravi Kumar", "Dr. A. Rao", "12 Nov 2026", "Telugu", "Hypertension", "Completed"],
-  ["Meera Shah", "Dr. A. Rao", "12 Nov 2026", "English", "Migraine", "Completed"],
-  ["Arjun Patel", "Dr. P. Menon", "12 Nov 2026", "Hindi", "T2 Diabetes", "Review"],
-  ["Lakshmi Devi", "Dr. A. Rao", "11 Nov 2026", "Telugu", "URTI", "Completed"],
-  ["Farhan Ali", "Dr. R. Iyer", "11 Nov 2026", "Hindi", "Asthma flare", "Alert"],
-  ["Sneha Reddy", "Dr. A. Rao", "10 Nov 2026", "Telugu", "Anemia", "Completed"],
-  ["Karan Mehta", "Dr. P. Menon", "10 Nov 2026", "English", "GERD", "Completed"],
-  ["Divya Nair", "Dr. R. Iyer", "9 Nov 2026", "English", "Thyroid f/u", "Review"],
-];
-
 function Patients() {
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ full_name: "", age: "", gender: "", contact: "", medical_history: "" });
+
+  const { data: patients = [], isLoading } = useQuery({
+    queryKey: ["patients"],
+    queryFn: () => listPatients(),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (input: typeof form) =>
+      createPatient({
+        data: {
+          full_name: input.full_name,
+          age: input.age ? Number(input.age) : null,
+          gender: input.gender || null,
+          contact: input.contact || null,
+          medical_history: input.medical_history || null,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      toast.success("Patient added");
+      setOpen(false);
+      setForm({ full_name: "", age: "", gender: "", contact: "", medical_history: "" });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to add patient"),
+  });
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => deletePatient({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      toast.success("Patient removed");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to remove"),
+  });
+
+  const filtered = patients.filter((p) =>
+    p.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.medical_history ?? "").toLowerCase().includes(search.toLowerCase()),
+  );
+
   return (
-    <AppShell title="Patient Records" subtitle="All consultations across your practice.">
+    <AppShell title="Patient Records" subtitle="Your registered patients.">
       <div className="glass mb-6 flex flex-wrap items-center gap-3 rounded-2xl p-4">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search by patient, diagnosis, or doctor…" className="h-10 rounded-xl bg-card/60 pl-10" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by patient or condition…" className="h-10 rounded-xl bg-card/60 pl-10" />
         </div>
         <Button variant="outline" className="rounded-xl border-white/10 bg-card/60"><Filter className="mr-2 h-4 w-4" /> Filter</Button>
-        <Button className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}><Plus className="mr-2 h-4 w-4" /> New Record</Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+              <Plus className="mr-2 h-4 w-4" /> New Patient
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="glass-strong sm:max-w-[480px]">
+            <DialogHeader><DialogTitle>Add patient</DialogTitle></DialogHeader>
+            <form
+              onSubmit={(e) => { e.preventDefault(); createMut.mutate(form); }}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="fn">Full name</Label>
+                <Input id="fn" required maxLength={120} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="age">Age</Label>
+                  <Input id="age" type="number" min={0} max={150} value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Input id="gender" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact">Contact</Label>
+                <Input id="contact" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hist">Medical history</Label>
+                <Input id="hist" value={form.medical_history} onChange={(e) => setForm({ ...form, medical_history: e.target.value })} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={createMut.isPending} className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+                  {createMut.isPending ? "Saving…" : "Save patient"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="glass overflow-hidden rounded-2xl">
@@ -38,50 +120,55 @@ function Patients() {
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-white/5">
               <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                {["Patient", "Doctor", "Date", "Language", "Diagnosis", "Status", "Actions"].map((h) => (
+                {["Patient", "Age", "Gender", "Contact", "History", "Added", "Actions"].map((h) => (
                   <th key={h} className="px-6 py-3 font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r[0]} className="border-t border-white/5 transition-colors hover:bg-white/5">
+              {isLoading && (
+                <tr><td colSpan={7} className="px-6 py-16 text-center text-muted-foreground">
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                </td></tr>
+              )}
+              {!isLoading && filtered.length === 0 && (
+                <tr><td colSpan={7} className="px-6 py-16 text-center text-muted-foreground">
+                  No patients yet. Add your first patient to get started.
+                </td></tr>
+              )}
+              {filtered.map((p) => (
+                <tr key={p.id} className="border-t border-white/5 transition-colors hover:bg-white/5">
                   <td className="px-6 py-4">
-                    <div className="font-medium">{r[0]}</div>
-                    <div className="text-[11px] text-muted-foreground">ID · #{Math.floor(Math.random() * 90000) + 10000}</div>
+                    <div className="font-medium">{p.full_name}</div>
+                    <div className="text-[11px] text-muted-foreground">ID · #{p.id.slice(0, 8)}</div>
                   </td>
-                  <td className="px-6 py-4 text-muted-foreground">{r[1]}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{r[2]}</td>
-                  <td className="px-6 py-4"><Badge variant="outline" className="border-white/10 bg-card/60 text-[10px]">{r[3]}</Badge></td>
-                  <td className="px-6 py-4">{r[4]}</td>
-                  <td className="px-6 py-4">
-                    <Badge className={`border-0 text-[10px] ${
-                      r[5] === "Alert" ? "bg-rose-400/15 text-[color:var(--danger)]" :
-                      r[5] === "Review" ? "bg-amber-400/15 text-amber-300" :
-                      "bg-emerald-400/15 text-[color:var(--emerald)]"
-                    }`}>{r[5]}</Badge>
+                  <td className="px-6 py-4 text-muted-foreground">{p.age ?? "—"}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{p.gender ?? "—"}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{p.contact ?? "—"}</td>
+                  <td className="px-6 py-4">{p.medical_history ?? <span className="text-muted-foreground">—</span>}</td>
+                  <td className="px-6 py-4 text-muted-foreground">
+                    <Badge variant="outline" className="border-white/10 bg-card/60 text-[10px]">
+                      {new Date(p.created_at).toLocaleDateString()}
+                    </Badge>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg"><Eye className="h-3.5 w-3.5" /></Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg"><Download className="h-3.5 w-3.5" /></Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-[color:var(--danger)]"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg"><Eye className="h-4 w-4" /></Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg text-[color:var(--danger)]"
+                        onClick={() => delMut.mutate(p.id)}
+                        disabled={delMut.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 px-6 py-4 text-xs text-muted-foreground">
-          <div>Showing 1–8 of 2,847</div>
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg border-white/10 bg-card/60"><ChevronLeft className="h-3.5 w-3.5" /></Button>
-            {[1, 2, 3, "…", 128].map((p, i) => (
-              <Button key={i} size="sm" variant={p === 1 ? "default" : "outline"} className={`h-8 min-w-8 rounded-lg ${p === 1 ? "text-primary-foreground" : "border-white/10 bg-card/60"}`} style={p === 1 ? { background: "var(--gradient-primary)" } : undefined}>{p}</Button>
-            ))}
-            <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg border-white/10 bg-card/60"><ChevronRight className="h-3.5 w-3.5" /></Button>
-          </div>
         </div>
       </div>
     </AppShell>
