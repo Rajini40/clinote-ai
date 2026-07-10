@@ -27,6 +27,22 @@ const nav = [
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title?: string; subtitle?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [dark, setDark] = useState(true);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: profile } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getMyProfile(),
+    staleTime: 60_000,
+  });
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    toast.success("Signed out");
+    navigate({ to: "/login", replace: true });
+  };
+
 
   return (
     <div className="flex min-h-screen w-full">
