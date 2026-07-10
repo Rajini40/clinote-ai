@@ -112,10 +112,13 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
               <div className="hidden items-center gap-2 rounded-xl glass px-2 py-1 sm:flex">
                 <Avatar className="h-8 w-8"><AvatarFallback className="bg-transparent text-xs"><CircleUser className="h-4 w-4" /></AvatarFallback></Avatar>
                 <div className="pr-2 leading-tight">
-                  <div className="text-xs font-semibold">Dr. A. Rao</div>
-                  <div className="text-[10px] text-muted-foreground">Internal Medicine</div>
+                  <div className="text-xs font-semibold">{profile?.full_name ?? "Doctor"}</div>
+                  <div className="text-[10px] text-muted-foreground">{profile?.specialty ?? "Clinician"}</div>
                 </div>
               </div>
+              <Button variant="ghost" size="icon" className="rounded-xl" onClick={signOut} title="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
           {(title || subtitle) && (
