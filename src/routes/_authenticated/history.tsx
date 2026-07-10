@@ -3,7 +3,7 @@ import { AppShell } from "@/components/mediscribe/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Mic, AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/history")({
+export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({ meta: [{ title: "History — MediScribe" }, { name: "robots", content: "noindex" }] }),
   component: History,
 });

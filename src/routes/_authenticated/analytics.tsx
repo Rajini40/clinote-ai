@@ -7,7 +7,7 @@ import { AppShell } from "@/components/mediscribe/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Users, Stethoscope, TrendingUp, ShieldCheck, AlertTriangle, Clock } from "lucide-react";
 
-export const Route = createFileRoute("/analytics")({
+export const Route = createFileRoute("/_authenticated/analytics")({
   head: () => ({ meta: [{ title: "Analytics — MediScribe" }, { name: "robots", content: "noindex" }] }),
   component: Analytics,
 });
