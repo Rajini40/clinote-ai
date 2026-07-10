@@ -1,14 +1,18 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard, Mic, Users, FileText, BarChart3, History, Settings,
-  Bell, Search, Moon, Sun, CircleUser, Command,
+  Bell, Search, Moon, Sun, CircleUser, Command, LogOut,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { Logo } from "./Logo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { getMyProfile } from "@/lib/profile.functions";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
