@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export const Route = createFileRoute("/consultation")({
+export const Route = createFileRoute("/_authenticated/consultation")({
   head: () => ({ meta: [{ title: "New Consultation — MediScribe" }, { name: "robots", content: "noindex" }] }),
   component: NewConsultation,
 });

@@ -8,7 +8,7 @@ import { AppShell } from "@/components/mediscribe/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/soap")({
+export const Route = createFileRoute("/_authenticated/soap")({
   head: () => ({ meta: [{ title: "SOAP Note — MediScribe" }, { name: "robots", content: "noindex" }] }),
   component: SoapNote,
 });

@@ -12,7 +12,7 @@ import { AppShell } from "@/components/mediscribe/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — MediScribe" }, { name: "robots", content: "noindex" }] }),
   component: Dashboard,
 });

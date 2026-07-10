@@ -1,14 +1,18 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard, Mic, Users, FileText, BarChart3, History, Settings,
-  Bell, Search, Moon, Sun, CircleUser, Command,
+  Bell, Search, Moon, Sun, CircleUser, Command, LogOut,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { Logo } from "./Logo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { getMyProfile } from "@/lib/profile.functions";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +27,22 @@ const nav = [
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title?: string; subtitle?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [dark, setDark] = useState(true);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: profile } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getMyProfile(),
+    staleTime: 60_000,
+  });
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    toast.success("Signed out");
+    navigate({ to: "/login", replace: true });
+  };
+
 
   return (
     <div className="flex min-h-screen w-full">
@@ -92,10 +112,13 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
               <div className="hidden items-center gap-2 rounded-xl glass px-2 py-1 sm:flex">
                 <Avatar className="h-8 w-8"><AvatarFallback className="bg-transparent text-xs"><CircleUser className="h-4 w-4" /></AvatarFallback></Avatar>
                 <div className="pr-2 leading-tight">
-                  <div className="text-xs font-semibold">Dr. A. Rao</div>
-                  <div className="text-[10px] text-muted-foreground">Internal Medicine</div>
+                  <div className="text-xs font-semibold">{profile?.full_name ?? "Doctor"}</div>
+                  <div className="text-[10px] text-muted-foreground">{profile?.specialty ?? "Clinician"}</div>
                 </div>
               </div>
+              <Button variant="ghost" size="icon" className="rounded-xl" onClick={signOut} title="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
           {(title || subtitle) && (
