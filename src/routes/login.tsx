@@ -170,9 +170,14 @@ function LoginPage() {
                   </div>
                 </div>
                 {mode === "signin" && (
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remember" defaultChecked />
-                    <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground">Remember me for 30 days</Label>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="remember" defaultChecked />
+                      <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground">Remember me</Label>
+                    </div>
+                    <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+                      Forgot password?
+                    </Link>
                   </div>
                 )}
                 <Button

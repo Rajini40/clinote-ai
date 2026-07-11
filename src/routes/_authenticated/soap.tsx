@@ -1,149 +1,203 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  Download, FileText, Save, Pencil, Printer, Share2, AlertTriangle,
-  Pill, CalendarClock, ClipboardList, Activity, Brain, Notebook,
+  Download, FileText, Save, Pencil, Printer, AlertTriangle, ClipboardList,
+  Activity, Brain, Notebook, Loader2,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AppShell } from "@/components/mediscribe/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { getConsultation } from "@/lib/consultations.functions";
+import { getSoapByConsultation, saveSoap } from "@/lib/soap.functions";
+import { listConsultations } from "@/lib/consultations.functions";
+
+const searchSchema = z.object({ id: z.string().uuid().optional() });
 
 export const Route = createFileRoute("/_authenticated/soap")({
   head: () => ({ meta: [{ title: "SOAP Note — MediScribe" }, { name: "robots", content: "noindex" }] }),
+  validateSearch: (s) => searchSchema.parse(s),
   component: SoapNote,
 });
 
-const sections = [
-  {
-    key: "S", title: "Subjective", icon: Notebook, color: "var(--neon)",
-    body: [
-      "54-year-old male presents with intermittent chest tightness for 2 weeks, worse on exertion.",
-      "Denies radiation to arm/jaw, no diaphoresis. Reports mild orthopnea over last 5 days.",
-      "PMH: HTN (10 yrs, on amlodipine 5 mg). Non-smoker. Father: MI at 62.",
-    ],
-  },
-  {
-    key: "O", title: "Objective", icon: Activity, color: "var(--cyan)",
-    body: [
-      "BP 152/94 mmHg · HR 88 · RR 18 · SpO₂ 97% · Temp 98.4°F",
-      "Cardio: S1/S2 normal, no murmurs. Lungs clear bilaterally. No pedal edema.",
-      "ECG: normal sinus rhythm, no acute ST changes.",
-    ],
-  },
-  {
-    key: "A", title: "Assessment", icon: Brain, color: "var(--violet)",
-    body: [
-      "Uncontrolled essential hypertension (Stage 2) with atypical chest pain — low-to-intermediate risk.",
-      "Rule out stable angina — stress test indicated.",
-    ],
-  },
-  {
-    key: "P", title: "Plan", icon: ClipboardList, color: "var(--emerald)",
-    body: [
-      "Increase amlodipine to 10 mg OD; add losartan 25 mg OD.",
-      "Order lipid panel, HbA1c, ECHO, and treadmill stress test.",
-      "Lifestyle: DASH diet, 30 min walk × 5/week, reduce sodium.",
-    ],
-  },
-];
-
-const meds = [
-  { name: "Amlodipine", dose: "10 mg", freq: "OD", route: "PO" },
-  { name: "Losartan", dose: "25 mg", freq: "OD", route: "PO" },
-  { name: "Atorvastatin", dose: "20 mg", freq: "HS", route: "PO" },
-];
+type Fields = { subjective: string; objective: string; assessment: string; plan: string; medication: string; summary: string };
+const empty: Fields = { subjective: "", objective: "", assessment: "", plan: "", medication: "", summary: "" };
 
 function SoapNote() {
+  const { id } = Route.useSearch();
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [fields, setFields] = useState<Fields>(empty);
+
+  // If no id in URL, pick the most recent consultation.
+  const { data: recent } = useQuery({
+    queryKey: ["consultations-latest"],
+    queryFn: () => listConsultations(),
+    enabled: !id,
+  });
+  const consultId = id ?? recent?.[0]?.id;
+
+  const { data: consult } = useQuery({
+    queryKey: ["consultation", consultId],
+    queryFn: () => getConsultation({ data: { id: consultId! } }),
+    enabled: !!consultId,
+  });
+
+  const { data: soap, isLoading } = useQuery({
+    queryKey: ["soap", consultId],
+    queryFn: () => getSoapByConsultation({ data: { consultation_id: consultId! } }),
+    enabled: !!consultId,
+  });
+
+  useEffect(() => {
+    if (soap) {
+      setFields({
+        subjective: soap.subjective ?? "",
+        objective: soap.objective ?? "",
+        assessment: soap.assessment ?? "",
+        plan: soap.plan ?? "",
+        medication: soap.medication ?? "",
+        summary: soap.summary ?? "",
+      });
+    }
+  }, [soap]);
+
+  const saveMut = useMutation({
+    mutationFn: () => saveSoap({ data: { consultation_id: consultId!, ...fields } }),
+    onSuccess: () => {
+      toast.success("SOAP note saved");
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["soap", consultId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
+  });
+
+  if (!consultId) {
+    return (
+      <AppShell title="SOAP Notes" subtitle="No consultation selected.">
+        <div className="glass rounded-2xl p-10 text-center">
+          <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">No SOAP notes yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Start a consultation to generate your first SOAP note.</p>
+          <Link to="/consultation"><Button className="mt-6 rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>New consultation</Button></Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const sections: Array<[keyof Fields, string, string, any]> = [
+    ["subjective", "S", "Subjective", Notebook],
+    ["objective", "O", "Objective", Activity],
+    ["assessment", "A", "Assessment", Brain],
+    ["plan", "P", "Plan", ClipboardList],
+  ];
+  const colors = ["var(--neon)", "var(--cyan)", "var(--violet)", "var(--emerald)"];
+
   return (
-    <AppShell title="SOAP Note · Ravi Kumar" subtitle="Generated in 42 seconds · Telugu → English translation · 99.2% confidence">
-      {/* Toolbar */}
+    <AppShell
+      title={consult ? `SOAP Note · ${consult.patient_name}` : "SOAP Note"}
+      subtitle={consult ? `Language: ${consult.language}${consult.diagnosis ? ` · ${consult.diagnosis}` : ""}` : undefined}
+    >
       <div className="glass mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
         <div className="flex items-center gap-2">
-          <Badge className="border-0 bg-emerald-400/15 text-[color:var(--emerald)]">AI generated</Badge>
-          <Badge variant="outline" className="border-white/10 bg-card/60">Confidence 99.2%</Badge>
-          <Badge variant="outline" className="border-white/10 bg-card/60">Language: Telugu</Badge>
+          <Badge className="border-0 bg-emerald-400/15 text-[color:var(--emerald)]">{consult?.status ?? "Draft"}</Badge>
+          {consult?.language && <Badge variant="outline" className="border-white/10 bg-card/60">Language: {consult.language}</Badge>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="rounded-xl border-white/10 bg-card/60"><Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit</Button>
-          <Button variant="outline" size="sm" className="rounded-xl border-white/10 bg-card/60"><Save className="mr-1.5 h-3.5 w-3.5" /> Save</Button>
-          <Button variant="outline" size="sm" className="rounded-xl border-white/10 bg-card/60"><Printer className="mr-1.5 h-3.5 w-3.5" /> Print</Button>
-          <Button variant="outline" size="sm" className="rounded-xl border-white/10 bg-card/60"><Share2 className="mr-1.5 h-3.5 w-3.5" /> Share</Button>
-          <Button size="sm" className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}><Download className="mr-1.5 h-3.5 w-3.5" /> PDF</Button>
-          <Button size="sm" variant="secondary" className="rounded-xl"><FileText className="mr-1.5 h-3.5 w-3.5" /> DOCX</Button>
+          {editing ? (
+            <Button size="sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}
+              className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+              {saveMut.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />} Save
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="rounded-xl border-white/10 bg-card/60">
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="rounded-xl border-white/10 bg-card/60">
+            <Printer className="mr-1.5 h-3.5 w-3.5" /> Print
+          </Button>
+          <Button size="sm" disabled className="rounded-xl text-primary-foreground opacity-60" style={{ background: "var(--gradient-primary)" }}>
+            <Download className="mr-1.5 h-3.5 w-3.5" /> PDF (FastAPI)
+          </Button>
         </div>
       </div>
 
-      {/* Critical alert */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass mb-6 flex items-start gap-4 overflow-hidden rounded-2xl border border-rose-500/20 p-5" style={{ background: "linear-gradient(135deg, oklch(0.65 0.24 20 / 12%), transparent)" }}>
-        <div className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: "oklch(0.65 0.24 20 / 20%)" }}>
-          <AlertTriangle className="h-5 w-5" style={{ color: "var(--danger)" }} />
+      {isLoading && (
+        <div className="glass mb-6 flex items-center gap-2 rounded-2xl p-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading SOAP note…
         </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold">Critical alert · BP Stage 2</div>
-          <p className="text-xs text-muted-foreground">Systolic 152 mmHg with atypical chest pain. Recommend expedited cardiology review and stress testing.</p>
-        </div>
-        <Badge className="border-0 bg-rose-500/20 text-[color:var(--danger)]">High</Badge>
-      </motion.div>
+      )}
 
-      {/* SOAP grid */}
+      {!isLoading && !soap && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="glass mb-6 flex items-start gap-4 rounded-2xl border border-amber-500/20 p-5"
+          style={{ background: "linear-gradient(135deg, oklch(0.75 0.18 80 / 12%), transparent)" }}>
+          <AlertTriangle className="h-5 w-5" style={{ color: "var(--danger)" }} />
+          <div className="flex-1">
+            <div className="text-sm font-semibold">SOAP note not yet generated</div>
+            <p className="text-xs text-muted-foreground">
+              The AI SOAP generation service (FastAPI) will populate this note. You can also edit and save manually.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setEditing(true)} className="rounded-xl">Start manually</Button>
+        </motion.div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
-        {sections.map((s, i) => (
-          <motion.section
-            key={s.key}
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-            className="glass hover-lift relative overflow-hidden rounded-2xl p-6"
-          >
-            <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full opacity-20 blur-3xl" style={{ background: s.color }} />
+        {sections.map(([key, letter, title, Icon], i) => (
+          <motion.section key={key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            className="glass hover-lift relative overflow-hidden rounded-2xl p-6">
+            <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full opacity-20 blur-3xl" style={{ background: colors[i] }} />
             <div className="relative flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl glass" style={{ boxShadow: `0 0 24px ${s.color}55` }}>
-                <s.icon className="h-4 w-4" style={{ color: s.color }} />
+              <div className="grid h-10 w-10 place-items-center rounded-xl glass" style={{ boxShadow: `0 0 24px ${colors[i]}55` }}>
+                <Icon className="h-4 w-4" style={{ color: colors[i] }} />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{s.key}</div>
-                <h3 className="text-lg font-semibold">{s.title}</h3>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{letter}</div>
+                <h3 className="text-lg font-semibold">{title}</h3>
               </div>
             </div>
-            <ul className="relative mt-5 space-y-2 text-sm leading-relaxed text-muted-foreground">
-              {s.body.map((b) => (<li key={b} className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full" style={{ background: s.color }} />{b}</li>))}
-            </ul>
+            <div className="relative mt-5">
+              {editing ? (
+                <Textarea value={fields[key]} onChange={(e) => setFields({ ...fields, [key]: e.target.value })}
+                  className="min-h-[160px] rounded-xl bg-card/60" placeholder={`Enter ${title.toLowerCase()}…`} />
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {fields[key] || <span className="italic opacity-60">No {title.toLowerCase()} yet.</span>}
+                </p>
+              )}
+            </div>
           </motion.section>
         ))}
       </div>
 
-      {/* Meds + follow-up + summary */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="glass rounded-2xl p-6">
-          <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl glass"><Pill className="h-4 w-4" style={{ color: "var(--neon)" }} /></div><h3 className="font-semibold">Medication</h3></div>
-          <ul className="mt-4 space-y-2 text-sm">
-            {meds.map((m) => (
-              <li key={m.name} className="flex items-center justify-between rounded-xl border border-white/5 bg-card/40 px-3 py-2">
-                <div><div className="font-medium">{m.name}</div><div className="text-[11px] text-muted-foreground">{m.route} · {m.freq}</div></div>
-                <Badge variant="outline" className="border-white/10 bg-card/60">{m.dose}</Badge>
-              </li>
-            ))}
-          </ul>
+          <h3 className="font-semibold">Medication</h3>
+          {editing ? (
+            <Textarea value={fields.medication} onChange={(e) => setFields({ ...fields, medication: e.target.value })}
+              className="mt-3 min-h-[120px] rounded-xl bg-card/60" placeholder="Prescribed medications…" />
+          ) : (
+            <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
+              {fields.medication || <span className="italic opacity-60">No medication recorded.</span>}
+            </p>
+          )}
         </div>
-
         <div className="glass rounded-2xl p-6">
-          <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl glass"><CalendarClock className="h-4 w-4" style={{ color: "var(--emerald)" }} /></div><h3 className="font-semibold">Follow-up</h3></div>
-          <div className="mt-4 rounded-xl border border-white/5 bg-card/40 p-4 text-sm">
-            <div className="text-muted-foreground">Next visit</div>
-            <div className="mt-1 font-semibold">In 2 weeks · 24 Nov 2026</div>
-            <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-              <li>· BP diary (AM/PM)</li>
-              <li>· Bring stress test results</li>
-              <li>· Report if chest pain returns</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl glass"><FileText className="h-4 w-4" style={{ color: "var(--violet)" }} /></div><h3 className="font-semibold">Summary</h3></div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Uncontrolled hypertension with atypical chest pain. Antihypertensive intensified,
-            statin initiated, and non-invasive cardiac workup scheduled. Patient counseled on
-            lifestyle and red-flag symptoms; follow-up in 2 weeks.
-          </p>
+          <h3 className="font-semibold">Summary</h3>
+          {editing ? (
+            <Textarea value={fields.summary} onChange={(e) => setFields({ ...fields, summary: e.target.value })}
+              className="mt-3 min-h-[120px] rounded-xl bg-card/60" placeholder="High-level summary…" />
+          ) : (
+            <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
+              {fields.summary || <span className="italic opacity-60">No summary yet.</span>}
+            </p>
+          )}
         </div>
       </div>
     </AppShell>
