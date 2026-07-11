@@ -14,8 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          doctor_id: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          doctor_id: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          doctor_id?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      alerts: {
+        Row: {
+          acknowledged: boolean
+          consultation_id: string | null
+          created_at: string
+          doctor_id: string
+          id: string
+          message: string | null
+          patient_id: string | null
+          severity: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          consultation_id?: string | null
+          created_at?: string
+          doctor_id: string
+          id?: string
+          message?: string | null
+          patient_id?: string | null
+          severity?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged?: boolean
+          consultation_id?: string | null
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          message?: string | null
+          patient_id?: string | null
+          severity?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultations: {
         Row: {
+          audio_path: string | null
+          chief_complaint: string | null
           created_at: string
           diagnosis: string | null
           doctor_id: string
@@ -24,15 +110,19 @@ export type Database = {
           language: string
           patient_id: string | null
           patient_name: string
+          pdf_path: string | null
           soap_assessment: string | null
           soap_objective: string | null
           soap_plan: string | null
           soap_subjective: string | null
           status: string
+          tags: string[] | null
           transcript: string | null
           updated_at: string
         }
         Insert: {
+          audio_path?: string | null
+          chief_complaint?: string | null
           created_at?: string
           diagnosis?: string | null
           doctor_id: string
@@ -41,15 +131,19 @@ export type Database = {
           language?: string
           patient_id?: string | null
           patient_name: string
+          pdf_path?: string | null
           soap_assessment?: string | null
           soap_objective?: string | null
           soap_plan?: string | null
           soap_subjective?: string | null
           status?: string
+          tags?: string[] | null
           transcript?: string | null
           updated_at?: string
         }
         Update: {
+          audio_path?: string | null
+          chief_complaint?: string | null
           created_at?: string
           diagnosis?: string | null
           doctor_id?: string
@@ -58,11 +152,13 @@ export type Database = {
           language?: string
           patient_id?: string | null
           patient_name?: string
+          pdf_path?: string | null
           soap_assessment?: string | null
           soap_objective?: string | null
           soap_plan?: string | null
           soap_subjective?: string | null
           status?: string
+          tags?: string[] | null
           transcript?: string | null
           updated_at?: string
         }
@@ -76,12 +172,33 @@ export type Database = {
           },
         ]
       }
+      languages: {
+        Row: {
+          code: string
+          created_at: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          name?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           age: number | null
+          allergies: string | null
+          blood_group: string | null
           contact: string | null
           created_at: string
           doctor_id: string
+          email: string | null
           full_name: string
           gender: string | null
           id: string
@@ -90,9 +207,12 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          allergies?: string | null
+          blood_group?: string | null
           contact?: string | null
           created_at?: string
           doctor_id: string
+          email?: string | null
           full_name: string
           gender?: string | null
           id?: string
@@ -101,9 +221,12 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          allergies?: string | null
+          blood_group?: string | null
           contact?: string | null
           created_at?: string
           doctor_id?: string
+          email?: string | null
           full_name?: string
           gender?: string | null
           id?: string
@@ -118,8 +241,14 @@ export type Database = {
           clinic: string | null
           created_at: string
           full_name: string | null
+          hospital: string | null
           id: string
+          notify_alerts: boolean | null
+          notify_email: boolean | null
+          phone: string | null
+          preferred_language: string | null
           specialty: string | null
+          theme: string | null
           updated_at: string
         }
         Insert: {
@@ -127,8 +256,14 @@ export type Database = {
           clinic?: string | null
           created_at?: string
           full_name?: string | null
+          hospital?: string | null
           id: string
+          notify_alerts?: boolean | null
+          notify_email?: boolean | null
+          phone?: string | null
+          preferred_language?: string | null
           specialty?: string | null
+          theme?: string | null
           updated_at?: string
         }
         Update: {
@@ -136,11 +271,108 @@ export type Database = {
           clinic?: string | null
           created_at?: string
           full_name?: string | null
+          hospital?: string | null
           id?: string
+          notify_alerts?: boolean | null
+          notify_email?: boolean | null
+          phone?: string | null
+          preferred_language?: string | null
           specialty?: string | null
+          theme?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          consultation_id: string | null
+          created_at: string
+          doctor_id: string
+          id: string
+          kind: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          consultation_id?: string | null
+          created_at?: string
+          doctor_id: string
+          id?: string
+          kind?: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          consultation_id?: string | null
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          kind?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      soap_notes: {
+        Row: {
+          assessment: string | null
+          consultation_id: string
+          created_at: string
+          doctor_id: string
+          id: string
+          medication: string | null
+          objective: string | null
+          payload: Json | null
+          plan: string | null
+          subjective: string | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment?: string | null
+          consultation_id: string
+          created_at?: string
+          doctor_id: string
+          id?: string
+          medication?: string | null
+          objective?: string | null
+          payload?: Json | null
+          plan?: string | null
+          subjective?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment?: string | null
+          consultation_id?: string
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          medication?: string | null
+          objective?: string | null
+          payload?: Json | null
+          plan?: string | null
+          subjective?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "soap_notes_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
