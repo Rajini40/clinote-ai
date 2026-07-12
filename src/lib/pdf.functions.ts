@@ -131,7 +131,7 @@ async function buildPdf(input: {
   ];
   for (const [k, v] of pInfo) {
     ensure(14);
-    page.drawText(`${k}:`, { x: margin, y: y - 10, size: 9, font: bold, color });
+    page.drawText(`${k}:`, { x: margin, y: y - 10, size: 9, font: bold, color: text });
     page.drawText(String(v), { x: margin + 90, y: y - 10, size: 9, font, color: text });
     y -= 14;
   }
@@ -168,7 +168,7 @@ async function buildPdf(input: {
   ];
   for (const [k, v] of dInfo) {
     ensure(14);
-    page.drawText(`${k}:`, { x: margin, y: y - 10, size: 9, font: bold, color });
+    page.drawText(`${k}:`, { x: margin, y: y - 10, size: 9, font: bold, color: text });
     page.drawText(String(v), { x: margin + 90, y: y - 10, size: 9, font, color: text });
     y -= 14;
   }
