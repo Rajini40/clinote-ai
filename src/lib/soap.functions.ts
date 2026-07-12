@@ -206,7 +206,7 @@ Return a JSON object with these string fields:
       plan: parsed.plan ?? "",
       medication: parsed.medication ?? "",
       summary: parsed.summary ?? "",
-      payload: parsed as unknown as Record<string, unknown>,
+      payload: parsed as unknown as import("@/integrations/supabase/types").Json,
     };
 
     let soapRow;
