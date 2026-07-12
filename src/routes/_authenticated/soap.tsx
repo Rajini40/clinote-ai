@@ -67,14 +67,34 @@ function SoapNote() {
     }
   }, [soap]);
 
-  const saveMut = useMutation({
-    mutationFn: () => saveSoap({ data: { consultation_id: consultId!, ...fields } }),
-    onSuccess: () => {
-      toast.success("SOAP note saved");
-      setEditing(false);
-      qc.invalidateQueries({ queryKey: ["soap", consultId] });
+  const pdfMut = useMutation({
+    mutationFn: async () => {
+      const res = await generateSoapPdf({ data: { consultation_id: consultId! } });
+      return res;
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
+    onSuccess: (res) => {
+      toast.success("PDF generated");
+      window.open(res.url, "_blank", "noopener,noreferrer");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to generate PDF"),
+  });
+
+  const printMut = useMutation({
+    mutationFn: async () => {
+      const existing = await getSoapPdfUrl({ data: { consultation_id: consultId! } });
+      if (existing.url) return existing.url;
+      const res = await generateSoapPdf({ data: { consultation_id: consultId! } });
+      return res.url;
+    },
+    onSuccess: (url) => {
+      const w = window.open(url, "_blank", "noopener,noreferrer");
+      if (w) {
+        w.addEventListener("load", () => {
+          try { w.focus(); w.print(); } catch { /* noop */ }
+        });
+      }
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to open PDF"),
   });
 
   if (!consultId) {
