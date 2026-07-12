@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getConsultation } from "@/lib/consultations.functions";
 import { getSoapByConsultation, saveSoap } from "@/lib/soap.functions";
 import { listConsultations } from "@/lib/consultations.functions";
+import { generateSoapPdf, getSoapPdfUrl } from "@/lib/pdf.functions";
 
 const searchSchema = z.object({ id: z.string().uuid().optional() });
 
@@ -76,6 +77,36 @@ function SoapNote() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
 
+  const pdfMut = useMutation({
+    mutationFn: async () => {
+      const res = await generateSoapPdf({ data: { consultation_id: consultId! } });
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success("PDF generated");
+      window.open(res.url, "_blank", "noopener,noreferrer");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to generate PDF"),
+  });
+
+  const printMut = useMutation({
+    mutationFn: async () => {
+      const existing = await getSoapPdfUrl({ data: { consultation_id: consultId! } });
+      if (existing.url) return existing.url;
+      const res = await generateSoapPdf({ data: { consultation_id: consultId! } });
+      return res.url;
+    },
+    onSuccess: (url) => {
+      const w = window.open(url, "_blank", "noopener,noreferrer");
+      if (w) {
+        w.addEventListener("load", () => {
+          try { w.focus(); w.print(); } catch { /* noop */ }
+        });
+      }
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to open PDF"),
+  });
+
   if (!consultId) {
     return (
       <AppShell title="SOAP Notes" subtitle="No consultation selected.">
@@ -118,11 +149,11 @@ function SoapNote() {
               <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="rounded-xl border-white/10 bg-card/60">
-            <Printer className="mr-1.5 h-3.5 w-3.5" /> Print
+          <Button variant="outline" size="sm" onClick={() => printMut.mutate()} disabled={printMut.isPending} className="rounded-xl border-white/10 bg-card/60">
+            {printMut.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Printer className="mr-1.5 h-3.5 w-3.5" />} Print
           </Button>
-          <Button size="sm" disabled className="rounded-xl text-primary-foreground opacity-60" style={{ background: "var(--gradient-primary)" }}>
-            <Download className="mr-1.5 h-3.5 w-3.5" /> PDF (FastAPI)
+          <Button size="sm" onClick={() => pdfMut.mutate()} disabled={pdfMut.isPending} className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+            {pdfMut.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />} Download PDF
           </Button>
         </div>
       </div>
