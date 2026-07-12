@@ -67,6 +67,16 @@ function SoapNote() {
     }
   }, [soap]);
 
+  const saveMut = useMutation({
+    mutationFn: () => saveSoap({ data: { consultation_id: consultId!, ...fields } }),
+    onSuccess: () => {
+      toast.success("SOAP note saved");
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["soap", consultId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
+  });
+
   const pdfMut = useMutation({
     mutationFn: async () => {
       const res = await generateSoapPdf({ data: { consultation_id: consultId! } });
