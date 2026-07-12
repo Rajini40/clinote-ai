@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getConsultation } from "@/lib/consultations.functions";
 import { getSoapByConsultation, saveSoap } from "@/lib/soap.functions";
 import { listConsultations } from "@/lib/consultations.functions";
+import { generateSoapPdf, getSoapPdfUrl } from "@/lib/pdf.functions";
 
 const searchSchema = z.object({ id: z.string().uuid().optional() });
 
