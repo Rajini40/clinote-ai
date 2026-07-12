@@ -149,11 +149,11 @@ function SoapNote() {
               <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="rounded-xl border-white/10 bg-card/60">
-            <Printer className="mr-1.5 h-3.5 w-3.5" /> Print
+          <Button variant="outline" size="sm" onClick={() => printMut.mutate()} disabled={printMut.isPending} className="rounded-xl border-white/10 bg-card/60">
+            {printMut.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Printer className="mr-1.5 h-3.5 w-3.5" />} Print
           </Button>
-          <Button size="sm" disabled className="rounded-xl text-primary-foreground opacity-60" style={{ background: "var(--gradient-primary)" }}>
-            <Download className="mr-1.5 h-3.5 w-3.5" /> PDF (FastAPI)
+          <Button size="sm" onClick={() => pdfMut.mutate()} disabled={pdfMut.isPending} className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+            {pdfMut.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />} Download PDF
           </Button>
         </div>
       </div>
