@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Download, FileText, Save, Pencil, Printer, AlertTriangle, ClipboardList,
-  Activity, Brain, Notebook, Loader2,
+  Activity, Brain, Notebook, Loader2, History, RotateCcw, Mic,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +16,10 @@ import { getConsultation } from "@/lib/consultations.functions";
 import { getSoapByConsultation, saveSoap } from "@/lib/soap.functions";
 import { listConsultations } from "@/lib/consultations.functions";
 import { generateSoapPdf, getSoapPdfUrl } from "@/lib/pdf.functions";
+import {
+  getTranscript, saveTranscript, listTranscriptVersions, restoreTranscriptVersion,
+} from "@/lib/transcripts.functions";
+
 
 const searchSchema = z.object({ id: z.string().uuid().optional() });
 
