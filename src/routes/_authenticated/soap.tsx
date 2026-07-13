@@ -37,9 +37,10 @@ function SoapNote() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [fields, setFields] = useState<Fields>(empty);
+  const [transcriptDraft, setTranscriptDraft] = useState("");
+  const [transcriptEditing, setTranscriptEditing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
-  // If no id in URL, pick the most recent consultation.
-  const { data: recent } = useQuery({
     queryKey: ["consultations-latest"],
     queryFn: () => listConsultations(),
     enabled: !id,
