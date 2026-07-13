@@ -6,7 +6,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const [{ count: patientsCount }, consultsRes, alertsRes] = await Promise.all([
+    const [{ count: patientsCount }, consultsRes, alertsRes, { count: soapCount }] = await Promise.all([
       context.supabase.from("patients").select("id", { count: "exact", head: true }),
       context.supabase.from("consultations")
         .select("id, status, language, duration_seconds, diagnosis, patient_name, created_at")
@@ -14,6 +14,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
       context.supabase.from("alerts")
         .select("id, severity, acknowledged, created_at")
         .eq("acknowledged", false),
+      context.supabase.from("soap_notes").select("id", { count: "exact", head: true }),
     ]);
     const consults = consultsRes.data ?? [];
     const alerts = alertsRes.data ?? [];
@@ -27,10 +28,19 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     const langCounts: Record<string, number> = {};
     for (const c of consults) langCounts[c.language] = (langCounts[c.language] ?? 0) + 1;
 
+    const completed = consults.filter((c) => (c.status ?? "").toLowerCase() === "completed").length;
+    const pending = consults.filter((c) => {
+      const s = (c.status ?? "").toLowerCase();
+      return s === "pending" || s === "processing" || s === "in_progress" || s === "draft";
+    }).length;
+
     return {
       totalPatients: patientsCount ?? 0,
       todaysConsultations: todaysConsults.length,
       totalConsultations: consults.length,
+      completedConsultations: completed,
+      pendingConsultations: pending,
+      soapNotesGenerated: soapCount ?? 0,
       criticalAlerts: alerts.filter((a) => a.severity === "critical" || a.severity === "high").length,
       avgDurationSeconds: avgDuration,
       languagesUsed: Object.keys(langCounts).length,
@@ -44,7 +54,7 @@ export const getAnalyticsData = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const since = new Date();
     since.setDate(since.getDate() - 30);
-    const [consultsRes, alertsRes, patientsRes] = await Promise.all([
+    const [consultsRes, alertsRes, patientsRes, { count: soapCount }] = await Promise.all([
       context.supabase.from("consultations")
         .select("id, language, diagnosis, duration_seconds, status, created_at")
         .gte("created_at", since.toISOString())
@@ -52,6 +62,8 @@ export const getAnalyticsData = createServerFn({ method: "GET" })
       context.supabase.from("alerts").select("id, severity, created_at")
         .gte("created_at", since.toISOString()),
       context.supabase.from("patients").select("id", { count: "exact", head: true }),
+      context.supabase.from("soap_notes").select("id", { count: "exact", head: true })
+        .gte("created_at", since.toISOString()),
     ]);
 
     const consults = consultsRes.data ?? [];
@@ -96,9 +108,18 @@ export const getAnalyticsData = createServerFn({ method: "GET" })
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
       : 0;
 
+    const completed = consults.filter((c) => (c.status ?? "").toLowerCase() === "completed").length;
+    const pending = consults.filter((c) => {
+      const s = (c.status ?? "").toLowerCase();
+      return s === "pending" || s === "processing" || s === "in_progress" || s === "draft";
+    }).length;
+
     return {
       totalPatients: patientsRes.count ?? 0,
       totalConsultations: consults.length,
+      completedConsultations: completed,
+      pendingConsultations: pending,
+      soapNotesGenerated: soapCount ?? 0,
       avgDurationSeconds: avgDuration,
       criticalAlerts: alerts.filter((a) => a.severity === "critical" || a.severity === "high").length,
       weekly: days,
