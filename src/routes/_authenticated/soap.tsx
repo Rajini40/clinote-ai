@@ -225,6 +225,87 @@ function SoapNote() {
         </motion.div>
       )}
 
+      <section className="glass mb-6 rounded-2xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl glass" style={{ boxShadow: "0 0 24px oklch(0.85 0.18 220 / 40%)" }}>
+              <Mic className="h-4 w-4" style={{ color: "var(--neon)" }} />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Transcript</div>
+              <h3 className="text-lg font-semibold">Consultation transcript</h3>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {versions && versions.length > 0 && (
+              <Badge variant="outline" className="border-white/10 bg-card/60">v{versions[0].version}</Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setShowHistory((v) => !v)}
+              className="rounded-xl border-white/10 bg-card/60">
+              <History className="mr-1.5 h-3.5 w-3.5" /> History {versions?.length ? `(${versions.length})` : ""}
+            </Button>
+            {transcriptEditing ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => { setTranscriptEditing(false); setTranscriptDraft(transcriptRow?.transcript ?? ""); }}
+                  className="rounded-xl border-white/10 bg-card/60">Cancel</Button>
+                <Button size="sm" onClick={() => saveTranscriptMut.mutate()} disabled={saveTranscriptMut.isPending}
+                  className="rounded-xl text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+                  {saveTranscriptMut.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />} Save
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setTranscriptEditing(true)}
+                className="rounded-xl border-white/10 bg-card/60">
+                <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-5">
+          {transcriptEditing ? (
+            <Textarea value={transcriptDraft} onChange={(e) => setTranscriptDraft(e.target.value)}
+              className="min-h-[220px] rounded-xl bg-card/60" placeholder="Consultation transcript…" />
+          ) : (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+              {transcriptRow?.transcript || <span className="italic opacity-60">No transcript yet. It will appear once transcription completes.</span>}
+            </p>
+          )}
+        </div>
+
+        {showHistory && (
+          <div className="mt-5 space-y-2 border-t border-white/10 pt-4">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">Version history</div>
+            {(!versions || versions.length === 0) ? (
+              <p className="text-xs text-muted-foreground italic">No prior versions.</p>
+            ) : (
+              <ul className="space-y-2">
+                {versions.map((v) => (
+                  <li key={v.id} className="glass flex items-start justify-between gap-3 rounded-xl p-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Badge variant="outline" className="border-white/10 bg-card/60">v{v.version}</Badge>
+                        <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString()}</span>
+                        {v.note && <span className="text-muted-foreground">· {v.note}</span>}
+                      </div>
+                      <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs text-muted-foreground/80">
+                        {v.transcript || <span className="italic">(empty)</span>}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => restoreMut.mutate(v.id)}
+                      disabled={restoreMut.isPending}
+                      className="shrink-0 rounded-xl border-white/10 bg-card/60">
+                      <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Restore
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
+
+
       <div className="grid gap-4 md:grid-cols-2">
         {sections.map(([key, letter, title, Icon], i) => (
           <motion.section key={key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
