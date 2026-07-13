@@ -54,7 +54,7 @@ export const getAnalyticsData = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const since = new Date();
     since.setDate(since.getDate() - 30);
-    const [consultsRes, alertsRes, patientsRes] = await Promise.all([
+    const [consultsRes, alertsRes, patientsRes, { count: soapCount }] = await Promise.all([
       context.supabase.from("consultations")
         .select("id, language, diagnosis, duration_seconds, status, created_at")
         .gte("created_at", since.toISOString())
@@ -62,6 +62,8 @@ export const getAnalyticsData = createServerFn({ method: "GET" })
       context.supabase.from("alerts").select("id, severity, created_at")
         .gte("created_at", since.toISOString()),
       context.supabase.from("patients").select("id", { count: "exact", head: true }),
+      context.supabase.from("soap_notes").select("id", { count: "exact", head: true })
+        .gte("created_at", since.toISOString()),
     ]);
 
     const consults = consultsRes.data ?? [];
