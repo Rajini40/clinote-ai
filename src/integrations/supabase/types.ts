@@ -374,6 +374,47 @@ export type Database = {
           },
         ]
       }
+      transcript_versions: {
+        Row: {
+          consultation_id: string
+          created_at: string
+          doctor_id: string
+          edited_by: string | null
+          id: string
+          note: string | null
+          transcript: string
+          version: number
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string
+          doctor_id: string
+          edited_by?: string | null
+          id?: string
+          note?: string | null
+          transcript?: string
+          version: number
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string
+          doctor_id?: string
+          edited_by?: string | null
+          id?: string
+          note?: string | null
+          transcript?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_versions_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
