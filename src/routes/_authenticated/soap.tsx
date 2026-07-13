@@ -74,6 +74,45 @@ function SoapNote() {
     }
   }, [soap]);
 
+  // ── Transcript ────────────────────────────────────────────────────────────
+  const { data: transcriptRow } = useQuery({
+    queryKey: ["transcript", consultId],
+    queryFn: () => getTranscript({ data: { consultation_id: consultId! } }),
+    enabled: !!consultId,
+  });
+  const { data: versions } = useQuery({
+    queryKey: ["transcript-versions", consultId],
+    queryFn: () => listTranscriptVersions({ data: { consultation_id: consultId! } }),
+    enabled: !!consultId,
+  });
+  useEffect(() => {
+    if (!transcriptEditing) setTranscriptDraft(transcriptRow?.transcript ?? "");
+  }, [transcriptRow, transcriptEditing]);
+
+  const saveTranscriptMut = useMutation({
+    mutationFn: () => saveTranscript({ data: { consultation_id: consultId!, transcript: transcriptDraft } }),
+    onSuccess: (res) => {
+      if (res.unchanged) toast.info("No changes to transcript");
+      else toast.success(`Transcript saved (v${res.version})`);
+      setTranscriptEditing(false);
+      qc.invalidateQueries({ queryKey: ["transcript", consultId] });
+      qc.invalidateQueries({ queryKey: ["transcript-versions", consultId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save transcript"),
+  });
+
+  const restoreMut = useMutation({
+    mutationFn: (version_id: string) =>
+      restoreTranscriptVersion({ data: { consultation_id: consultId!, version_id } }),
+    onSuccess: () => {
+      toast.success("Transcript restored");
+      qc.invalidateQueries({ queryKey: ["transcript", consultId] });
+      qc.invalidateQueries({ queryKey: ["transcript-versions", consultId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to restore"),
+  });
+
+
   const saveMut = useMutation({
     mutationFn: () => saveSoap({ data: { consultation_id: consultId!, ...fields } }),
     onSuccess: () => {
