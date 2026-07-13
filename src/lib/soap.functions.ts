@@ -109,12 +109,21 @@ export const generateSoapFromConsultation = createServerFn({ method: "POST" })
       transcript = (tJson.text ?? "").trim();
       if (!transcript) throw new Error("Transcription returned empty text.");
 
-      // 3. Store transcript
+      // 3. Store transcript + snapshot v1 in transcript_versions
       const { error: upErr } = await context.supabase
         .from("consultations")
         .update({ transcript })
         .eq("id", consult.id);
       if (upErr) throw new Error(upErr.message);
+
+      await context.supabase.from("transcript_versions").insert({
+        consultation_id: consult.id,
+        doctor_id: context.userId,
+        edited_by: context.userId,
+        version: 1,
+        transcript,
+        note: "AI transcription",
+      });
     }
 
     // 4. Generate structured SOAP
