@@ -108,9 +108,18 @@ export const getAnalyticsData = createServerFn({ method: "GET" })
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
       : 0;
 
+    const completed = consults.filter((c) => (c.status ?? "").toLowerCase() === "completed").length;
+    const pending = consults.filter((c) => {
+      const s = (c.status ?? "").toLowerCase();
+      return s === "pending" || s === "processing" || s === "in_progress" || s === "draft";
+    }).length;
+
     return {
       totalPatients: patientsRes.count ?? 0,
       totalConsultations: consults.length,
+      completedConsultations: completed,
+      pendingConsultations: pending,
+      soapNotesGenerated: soapCount ?? 0,
       avgDurationSeconds: avgDuration,
       criticalAlerts: alerts.filter((a) => a.severity === "critical" || a.severity === "high").length,
       weekly: days,
