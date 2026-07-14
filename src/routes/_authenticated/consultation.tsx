@@ -15,6 +15,7 @@ import { createConsultation, updateConsultation } from "@/lib/consultations.func
 import { getUploadUrl } from "@/lib/storage.functions";
 import { generateSoapFromConsultation } from "@/lib/soap.functions";
 import { listPatients } from "@/lib/patients.functions";
+import { createNotification } from "@/lib/notifications.functions";
 
 export const Route = createFileRoute("/_authenticated/consultation")({
   head: () => ({ meta: [{ title: "New Consultation — MediScribe" }, { name: "robots", content: "noindex" }] }),
