@@ -39,10 +39,14 @@ function Dashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: () => getDashboardStats(),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
   const { data: analytics } = useQuery({
     queryKey: ["analytics-lite"],
     queryFn: () => getAnalyticsData(),
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 
   const kpis = [
