@@ -42,6 +42,26 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     staleTime: 60_000,
   });
 
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => listNotifications(),
+    refetchInterval: 15_000,
+  });
+  const unread = notifications.filter((n) => !n.read).length;
+
+  const markRead = useMutation({
+    mutationFn: (id: string) => markNotificationRead({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+  const markAll = useMutation({
+    mutationFn: () => markAllNotificationsRead(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+  const delNote = useMutation({
+    mutationFn: (id: string) => deleteNotification({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
   const signOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -49,6 +69,8 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     toast.success("Signed out");
     navigate({ to: "/login", replace: true });
   };
+
+
 
 
   return (
