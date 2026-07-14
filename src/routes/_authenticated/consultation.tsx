@@ -119,7 +119,7 @@ function NewConsultation() {
   const genMut = useMutation({
     mutationFn: async () => {
       if (!patientName.trim()) throw new Error("Enter a patient name");
-      const audioPath = audioBlob ? await uploadIfNeeded() : null;
+      // 1. Create consultation immediately as Pending
       const consult = await createConsultation({
         data: {
           patient_id: patientId ?? null,
@@ -127,16 +127,26 @@ function NewConsultation() {
           language: lang,
           chief_complaint: chiefComplaint || null,
           duration_seconds: seconds,
-          status: "Draft",
-          audio_path: audioPath ?? null,
+          status: "Pending",
+          audio_path: null,
         },
       });
-      // Optionally trigger AI generation. If FASTAPI_URL isn't set, this fails gracefully.
+      // 2. Upload audio (if any) — mark Uploading
+      let audioPath: string | null = null;
+      if (audioBlob) {
+        await updateConsultation({ data: { id: consult.id, status: "Uploading" } });
+        try {
+          audioPath = await uploadIfNeeded();
+          await updateConsultation({ data: { id: consult.id, audio_path: audioPath, status: "Pending" } });
+        } catch (err) {
+          await updateConsultation({ data: { id: consult.id, status: "Failed" } });
+          throw err;
+        }
+      }
+      // 3. Run AI pipeline (server flips status to Transcribing → Generating SOAP → Completed / Failed)
       try {
         await generateSoapFromConsultation({ data: { consultation_id: consult.id } });
-        await updateConsultation({ data: { id: consult.id, status: "Completed" } });
       } catch (err) {
-        // AI service pending — save as Draft and let the doctor edit.
         console.warn("SOAP generation deferred:", err);
       }
       return consult;
