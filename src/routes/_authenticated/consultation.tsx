@@ -141,6 +141,15 @@ function NewConsultation() {
           await updateConsultation({ data: { id: consult.id, audio_path: audioPath, status: "Pending" } });
         } catch (err) {
           await updateConsultation({ data: { id: consult.id, status: "Failed" } });
+          await createNotification({
+            data: {
+              type: "upload_failed",
+              title: "Audio upload failed",
+              message: err instanceof Error ? err.message : "Could not upload the recording.",
+              entity: "consultation",
+              entity_id: consult.id,
+            },
+          }).catch(() => undefined);
           throw err;
         }
       }
