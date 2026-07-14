@@ -10,7 +10,7 @@ const consultInput = z.object({
   diagnosis: z.string().max(400).nullable().optional(),
   transcript: z.string().max(200_000).nullable().optional(),
   duration_seconds: z.number().int().min(0).max(60 * 60 * 12).optional(),
-  status: z.enum(["Draft", "Completed", "Review", "Alert"]).default("Draft"),
+  status: z.enum(["Pending", "Uploading", "Transcribing", "Generating SOAP", "Completed", "Failed", "Draft", "Review", "Alert"]).default("Pending"),
   audio_path: z.string().max(500).nullable().optional(),
 });
 
