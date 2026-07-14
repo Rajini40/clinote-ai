@@ -1,8 +1,8 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import {
   LayoutDashboard, Mic, Users, FileText, BarChart3, History, Settings,
-  Bell, Search, Moon, Sun, CircleUser, Command, LogOut,
+  Bell, Search, Moon, Sun, CircleUser, Command, LogOut, Check, Trash2, CheckCheck,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -11,8 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
+import {
+  listNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+} from "@/lib/notifications.functions";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -35,6 +42,26 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     staleTime: 60_000,
   });
 
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => listNotifications(),
+    refetchInterval: 15_000,
+  });
+  const unread = notifications.filter((n) => !n.read).length;
+
+  const markRead = useMutation({
+    mutationFn: (id: string) => markNotificationRead({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+  const markAll = useMutation({
+    mutationFn: () => markAllNotificationsRead(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+  const delNote = useMutation({
+    mutationFn: (id: string) => deleteNotification({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
   const signOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -42,6 +69,8 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     toast.success("Signed out");
     navigate({ to: "/login", replace: true });
   };
+
+
 
 
   return (
@@ -105,10 +134,71 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
               <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setDark((d) => !d)}>
                 {dark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="icon" className="relative rounded-xl">
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full" style={{ background: "var(--danger)" }} />
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative rounded-xl">
+                    <Bell className="h-4 w-4" />
+                    {unread > 0 && (
+                      <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold text-primary-foreground" style={{ background: "var(--danger)" }}>
+                        {unread > 9 ? "9+" : unread}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-96 p-0">
+                  <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                    <div>
+                      <div className="text-sm font-semibold">Notifications</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {unread > 0 ? `${unread} unread` : "All caught up"}
+                      </div>
+                    </div>
+                    {unread > 0 && (
+                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => markAll.mutate()}>
+                        <CheckCheck className="h-3 w-3" /> Mark all
+                      </Button>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-xs text-muted-foreground">
+                        No notifications yet.
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div key={n.id} className={`group flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-b-0 ${n.read ? "opacity-70" : ""}`}>
+                          <span
+                            className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: n.read ? "var(--muted-foreground)" : "var(--neon)" }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="truncate text-xs font-semibold">{n.title}</div>
+                              <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[9px]">{n.type.replace(/_/g, " ")}</Badge>
+                            </div>
+                            {n.message && (
+                              <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{n.message}</div>
+                            )}
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              {new Date(n.created_at).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            {!n.read && (
+                              <Button variant="ghost" size="icon" className="h-6 w-6" title="Mark read" onClick={() => markRead.mutate(n.id)}>
+                                <Check className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => delNote.mutate(n.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <div className="hidden items-center gap-2 rounded-xl glass px-2 py-1 sm:flex">
                 <Avatar className="h-8 w-8"><AvatarFallback className="bg-transparent text-xs"><CircleUser className="h-4 w-4" /></AvatarFallback></Avatar>
                 <div className="pr-2 leading-tight">

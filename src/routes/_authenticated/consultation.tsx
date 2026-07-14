@@ -15,6 +15,7 @@ import { createConsultation, updateConsultation } from "@/lib/consultations.func
 import { getUploadUrl } from "@/lib/storage.functions";
 import { generateSoapFromConsultation } from "@/lib/soap.functions";
 import { listPatients } from "@/lib/patients.functions";
+import { createNotification } from "@/lib/notifications.functions";
 
 export const Route = createFileRoute("/_authenticated/consultation")({
   head: () => ({ meta: [{ title: "New Consultation — MediScribe" }, { name: "robots", content: "noindex" }] }),
@@ -140,6 +141,15 @@ function NewConsultation() {
           await updateConsultation({ data: { id: consult.id, audio_path: audioPath, status: "Pending" } });
         } catch (err) {
           await updateConsultation({ data: { id: consult.id, status: "Failed" } });
+          await createNotification({
+            data: {
+              type: "upload_failed",
+              title: "Audio upload failed",
+              message: err instanceof Error ? err.message : "Could not upload the recording.",
+              entity: "consultation",
+              entity_id: consult.id,
+            },
+          }).catch(() => undefined);
           throw err;
         }
       }

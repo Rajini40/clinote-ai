@@ -260,15 +260,43 @@ Return a JSON object with these string fields:
         entity_id: consult.id,
       });
 
+      await context.supabase.from("notifications").insert([
+        {
+          user_id: context.userId,
+          type: "soap_generated",
+          title: "SOAP note ready",
+          message: `SOAP note generated for ${consult.patient_name}.`,
+          entity: "consultation",
+          entity_id: consult.id,
+        },
+        {
+          user_id: context.userId,
+          type: "consultation_completed",
+          title: "Consultation completed",
+          message: `Consultation with ${consult.patient_name} marked completed.`,
+          entity: "consultation",
+          entity_id: consult.id,
+        },
+      ]);
+
       return { ok: true, soap_id: soapRow.id, consultation_id: consult.id };
     } catch (err) {
       await setStatus("Failed");
+      const errMsg = err instanceof Error ? err.message : String(err);
       await context.supabase.from("activity_logs").insert({
         doctor_id: context.userId,
         action: "soap.failed",
         entity: "consultation",
         entity_id: data.consultation_id,
-        metadata: { error: err instanceof Error ? err.message : String(err) } as unknown as import("@/integrations/supabase/types").Json,
+        metadata: { error: errMsg } as unknown as import("@/integrations/supabase/types").Json,
+      });
+      await context.supabase.from("notifications").insert({
+        user_id: context.userId,
+        type: "ai_failed",
+        title: "AI processing failed",
+        message: errMsg.slice(0, 500),
+        entity: "consultation",
+        entity_id: data.consultation_id,
       });
       throw err;
     }

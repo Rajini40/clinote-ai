@@ -108,11 +108,26 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
+    let lastEvent = "";
     import("@/integrations/supabase/client").then(({ supabase }) => {
-      const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
         if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
         router.invalidate();
         if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+        // Auth event notification — fire once per unique event, only on real sign-in.
+        if (event === "SIGNED_IN" && lastEvent !== "SIGNED_IN" && session?.user) {
+          import("@/lib/notifications.functions").then(({ createNotification }) => {
+            createNotification({
+              data: {
+                type: "auth_signed_in",
+                title: "Signed in",
+                message: `Welcome back${session.user.email ? `, ${session.user.email}` : ""}.`,
+                entity: "auth",
+              },
+            }).catch(() => undefined);
+          });
+        }
+        lastEvent = event;
       });
       return () => sub.subscription.unsubscribe();
     });
