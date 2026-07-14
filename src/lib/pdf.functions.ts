@@ -244,6 +244,15 @@ export const generateSoapPdf = createServerFn({ method: "POST" })
       entity: "consultation", entity_id: consultation.id,
     });
 
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "pdf_generated",
+      title: "PDF report ready",
+      message: `Medical report generated for ${consultation.patient_name}.`,
+      entity: "consultation",
+      entity_id: consultation.id,
+    });
+
     return { path, url: signed.signedUrl };
   });
 
