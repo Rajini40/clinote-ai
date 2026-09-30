@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/analytics")({
 });
 
 const tooltipStyle = { background: "oklch(0.18 0.025 265)", border: "1px solid oklch(1 0 0 / 10%)", borderRadius: 12 };
-const langColors = ["oklch(0.85 0.18 220)", "oklch(0.78 0.18 160)", "oklch(0.7 0.22 300)", "oklch(0.75 0.2 40)", "oklch(0.78 0.18 100)"];
+import { langColors } from "@/lib/chart-colors";
 
 function fmtDur(s: number) { return s ? (s < 60 ? `${s}s` : `${Math.round(s / 60)}m`) : "—"; }
 
