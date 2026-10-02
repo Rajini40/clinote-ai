@@ -404,7 +404,7 @@ export type Database = {
           {
             foreignKeyName: "soap_notes_consultation_id_fkey"
             columns: ["consultation_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "consultations"
             referencedColumns: ["id"]
           },
